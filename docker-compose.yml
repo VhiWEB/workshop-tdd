@@ -1,0 +1,114 @@
+version: "3"
+
+services:
+
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - debug=true
+    depends_on:
+      - db
+      - redis
+    tty: true
+    volumes:
+      - ./composer.json:/var/www/html/composer.json
+      - ./composer.lock:/var/www/html/composer.lock
+      - ./config:/var/www/html/config
+      - ./modules:/var/www/html/modules
+      - ./plugins:/var/www/html/plugins
+      - ./themes:/var/www/html/themes
+      - web_storage:/var/www/html/storage
+    env_file:
+      - docker-compose.env
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8022:80"
+    depends_on:
+      - php
+    environment:
+      - APP_HOST=php
+      - APP_PORT=9000
+    volumes:
+      - ./.nginx-templates:/etc/nginx/templates
+      - ./:/app
+
+  horizon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - debug=true
+    depends_on:
+      - php
+      - db
+      - redis
+    env_file:
+      - docker-compose.env
+    volumes:
+      - ./config:/var/www/html/config
+      - ./modules:/var/www/html/modules
+      - ./plugins:/var/www/html/plugins
+      - ./themes:/var/www/html/themes
+    command: php artisan horizon
+
+  cron:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - debug=true
+    depends_on:
+      - php
+      - db
+      - redis
+    env_file:
+      - docker-compose.env
+    volumes:
+      - ./config:/var/www/html/config
+      - ./modules:/var/www/html/modules
+      - ./plugins:/var/www/html/plugins
+      - ./themes:/var/www/html/themes
+    command: crond -f
+
+  db:
+    image: mysql:5.7
+    volumes:
+      - mysql_data:/var/lib/mysql
+    environment:
+      - MYSQL_DATABASE=vhiweb
+      - MYSQL_USER=vhiweb
+      - MYSQL_PASSWORD=vhiweb
+      - MYSQL_RANDOM_ROOT_PASSWORD=1
+
+  redis:
+    image: redis:alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: redis-cli -h redis -p 6379 ping
+      start_period: 3s
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  # minio:
+  #   image: bitnami/minio:latest
+  #   ports:
+  #     - "9000:9000"
+  #     - "9001:9001"
+  #   volumes:
+  #     - minio_data:/data
+  #   environment:
+  #     - MINIO_ROOT_USER=minio-access
+  #     - MINIO_ROOT_PASSWORD=minio-secret
+  #     - MINIO_SKIP_CLIENT=yes
+
+volumes:
+  web_storage:
+  redis_data:
+  mysql_data:
+  # minio_data:

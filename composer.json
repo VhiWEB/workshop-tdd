@@ -1,0 +1,76 @@
+{
+    "name": "vhiweb/oc-boilerplate",
+    "description": "API Hub Managed by VhiWEB",
+    "type": "project",
+    "homepage": "https://vhiweb.com",
+    "license": "proprietary",
+    "require": {
+        "php": ">=7.2.9",
+        "ext-exif": "*",
+        "ext-gd": "*",
+        "ext-mbstring": "*",
+        "ext-openssl": "*",
+        "aws/aws-sdk-php": "^3.185",
+        "google/apiclient": "^2.0.3",
+        "laravel/framework": "^6.0",
+        "laravel/horizon": "^3.7",
+        "league/flysystem-aws-s3-v3": "~1.0",
+        "october/all": "^2.0",
+        "october/rain": "^2.0",
+        "predis/predis": "~1.0",
+        "rainlab/debugbar-plugin": "^3.0",
+        "wikimedia/composer-merge-plugin": "^2.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^8.0|^9.0",
+        "meyfa/phpunit-assert-gd": "^2.0.0|^3.0.0"
+    },
+    "scripts": {
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "php artisan key:generate --ansi"
+        ],
+        "post-autoload-dump": [
+            "System\\Console\\ComposerScript::postAutoloadDump"
+        ],
+        "post-update-cmd": [
+            "System\\Console\\ComposerScript::postUpdateCmd"
+        ],
+        "pre-package-uninstall": [
+            "System\\Console\\ComposerScript::prePackageUninstall"
+        ],
+        "test": [
+            "phpunit --stop-on-failure"
+        ]
+    },
+    "config": {
+        "preferred-install": "dist",
+        "allow-plugins": {
+            "composer/installers": true,
+            "wikimedia/composer-merge-plugin": true
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "System\\Console\\": "modules/system/console"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "repositories": {
+        "octobercms": {
+            "type": "composer",
+            "url": "https://gateway.octobercms.com"
+        }
+    },
+    "extra": {
+        "merge-plugin": {
+            "include": [],
+            "recurse": true,
+            "replace": false,
+            "merge-dev": true
+        }
+    }
+}

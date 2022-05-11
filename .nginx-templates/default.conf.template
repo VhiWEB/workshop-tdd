@@ -1,0 +1,170 @@
+# Main settings
+tcp_nopush                      on;
+tcp_nodelay                     on;
+client_header_timeout           60s;
+client_body_timeout             60s;
+client_header_buffer_size       2k;
+client_body_buffer_size         256k;
+client_max_body_size            256m;
+large_client_header_buffers     4 8k;
+send_timeout                    60s;
+reset_timedout_connection       on;
+server_tokens                   off;
+server_name_in_redirect         off;
+server_names_hash_max_size      512;
+server_names_hash_bucket_size   512;
+
+# Compression
+gzip                on;
+gzip_static         on;
+gzip_vary           on;
+gzip_comp_level     6;
+gzip_min_length     1024;
+gzip_buffers        16 8k;
+gzip_types          text/plain text/css text/javascript text/js text/xml application/json application/javascript application/x-javascript application/xml application/xml+rss application/x-font-ttf image/svg+xml font/opentype;
+gzip_proxied        any;
+gzip_disable        "MSIE [1-6]\.";
+
+# Proxy settings
+proxy_redirect      off;
+proxy_set_header    Host            $host;
+proxy_set_header    X-Real-IP       $remote_addr;
+proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_pass_header   Set-Cookie;
+proxy_buffers       32 4k;
+proxy_connect_timeout   30s;
+proxy_send_timeout  90s;
+proxy_read_timeout  90s;
+
+# Cloudflare https://www.cloudflare.com/ips
+set_real_ip_from 173.245.48.0/20;
+set_real_ip_from 103.21.244.0/22;
+set_real_ip_from 103.22.200.0/22;
+set_real_ip_from 103.31.4.0/22;
+set_real_ip_from 141.101.64.0/18;
+set_real_ip_from 108.162.192.0/18;
+set_real_ip_from 190.93.240.0/20;
+set_real_ip_from 188.114.96.0/20;
+set_real_ip_from 197.234.240.0/22;
+set_real_ip_from 198.41.128.0/17;
+set_real_ip_from 162.158.0.0/15;
+set_real_ip_from 172.64.0.0/13;
+set_real_ip_from 131.0.72.0/22;
+set_real_ip_from 104.16.0.0/13;
+set_real_ip_from 104.24.0.0/14;
+real_ip_header X-Forwarded-For;
+real_ip_recursive on;
+
+log_format custom '$realip_remote_addr - [$time_local] "$request_method $scheme://$host$request_uri $server_protocol" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for" '
+                'rt="$request_time" ct="$content_type"';
+
+server {
+    listen 80;
+    server_name _;
+    index index.php index.html;
+    root /app;
+
+    # Force without www
+    if ($host ~* ^www\.(.*)) {
+        set $host_without_www $1;
+        rewrite ^(.*) http://$host_without_www$1 permanent;
+    }
+
+    # Remove index.php
+    if ($request_uri ~* "^(.*/)index\.php") {
+        return 301 $1;
+    }
+
+    location / {
+        # Let OctoberCMS handle everything by default.
+        # The path not resolved by OctoberCMS router will return OctoberCMS's 404 page.
+        # Everything that does not match with the whitelist below will fall into this.
+        rewrite ^/.*$ /index.php last;
+    }
+
+    location ~ ^/index.php {
+        root /var/www/html;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass ${APP_HOST}:9000;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+    }
+
+    # Whitelist media extensions
+    location ~ ^/.*\.(png|pdf|jpg|jpeg|gif|svg|webp) {
+        expires 365d;
+        add_header Cache-Control "public, no-transform";
+        try_files $uri /index.php;
+    }
+
+    # Add CORS for font files
+    location ~* \.(eot|otf|ttf|woff|woff2)$ {
+        expires 30d;
+        add_header Access-Control-Allow-Origin *;
+    }
+
+    # Whitelist other extensions
+    location ~* \.(pdf|css|html|js|swf)$ {
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+        try_files $uri /index.php;
+    }
+
+    # Whitelist and enable CORS for web manifest
+    location ~ ^/(site\.webmanifest|browserconfig\.xml) {
+        add_header Access-Control-Allow-Origin *;
+        try_files $uri /index.php;
+    }
+
+    # Whitelist allowed files
+    location ~ ^/favicon\.ico { try_files $uri /index.php; }
+    location ~ ^/sitemap\.xml { try_files $uri /index.php; }
+    location ~ ^/robots\.txt { try_files $uri /index.php; }
+    location ~ ^/humans\.txt { try_files $uri /index.php; }
+
+    # Whitelist json only on themes
+    location ~ ^/themes/.*/assets/.*/.*.(json)$ {
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+        try_files $uri /index.php;
+    }
+
+    ## Let nginx return 404 if static file not exists
+    location ~ ^/storage/app/uploads/public { try_files $uri 404; }
+    location ~ ^/storage/app/media { try_files $uri 404; }
+    location ~ ^/storage/temp/public { try_files $uri 404; }
+
+    location ~ ^/modules/.*/assets { try_files $uri 404; }
+    location ~ ^/modules/.*/resources { try_files $uri 404; }
+    location ~ ^/modules/.*/behaviors/.*/assets { try_files $uri 404; }
+    location ~ ^/modules/.*/behaviors/.*/resources { try_files $uri 404; }
+    location ~ ^/modules/.*/widgets/.*/assets { try_files $uri 404; }
+    location ~ ^/modules/.*/widgets/.*/resources { try_files $uri 404; }
+    location ~ ^/modules/.*/formwidgets/.*/assets { try_files $uri 404; }
+    location ~ ^/modules/.*/formwidgets/.*/resources { try_files $uri 404; }
+    location ~ ^/modules/.*/reportwidgets/.*/assets { try_files $uri 404; }
+    location ~ ^/modules/.*/reportwidgets/.*/resources { try_files $uri 404; }
+
+    location ~ ^/plugins/.*/.*/assets { try_files $uri 404; }
+    location ~ ^/themes/.*/resources { try_files $uri 404; }
+
+    access_log /var/log/nginx/access.log custom;
+
+    error_page 404 /404.htm;
+    
+    location = /404.htm {
+        root /app/.nginx-templates;
+        internal;
+    }
+
+    error_page 500 502 503 504 /error.htm;
+
+    location = /error.htm {
+        root /app/.nginx-templates;
+        internal;
+    }
+}
