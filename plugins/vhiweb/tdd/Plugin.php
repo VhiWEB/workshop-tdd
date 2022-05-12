@@ -1,4 +1,6 @@
-<?php namespace Vhiweb\Api;
+<?php
+
+namespace Vhiweb\Api;
 
 use Backend;
 use System\Classes\PluginBase;
@@ -30,7 +32,6 @@ class Plugin extends PluginBase
      */
     public function register()
     {
-
     }
 
     /**
@@ -40,7 +41,6 @@ class Plugin extends PluginBase
      */
     public function boot()
     {
-
     }
 
     /**
@@ -53,7 +53,7 @@ class Plugin extends PluginBase
         return []; // Remove this line to activate
 
         return [
-            'Vhiweb\Api\Components\MyComponent' => 'myComponent',
+            'Vhiweb\TDD\Components\MyComponent' => 'myComponent',
         ];
     }
 
