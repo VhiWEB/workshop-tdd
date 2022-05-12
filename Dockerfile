@@ -4,7 +4,7 @@
 FROM composer:2 as composer
 WORKDIR /usr/local/src/
 COPY auth.json composer.json composer.lock ./
-RUN composer install --ignore-platform-reqs --no-scripts --no-autoloader --prefer-dist --no-dev --no-interaction
+RUN composer install --ignore-platform-reqs --no-scripts --no-autoloader --prefer-dist --no-interaction
 
 #
 # Runtime
@@ -23,9 +23,9 @@ RUN apk add --update \
     libjpeg-turbo-dev \
     libpng-dev \
     libwebp-dev \
-    zlib-dev \ 
+    zlib-dev \
     # For zip extension
-    libzip-dev \ 
+    libzip-dev \
     # Extra modules
     git \
     jq \
@@ -40,8 +40,8 @@ RUN if [[ -z "$debug" ]] ; then { \
     echo 'opcache.enable_cli=1'; \
     echo 'opcache.validate_timestamps=0'; \
     echo 'opcache.revalidate_freq=2'; \
-  } > /usr/local/etc/php/conf.d/docker-opcache.ini ; \
-  fi
+    } > /usr/local/etc/php/conf.d/docker-opcache.ini ; \
+    fi
 
 RUN { \
     echo 'log_errors=on'; \
@@ -53,7 +53,7 @@ RUN { \
     echo 'expose_php=Off'; \
     echo 'max_input_time=-1'; \
     echo 'max_execution_time=300'; \
-  } > /usr/local/etc/php/conf.d/docker-php.ini
+    } > /usr/local/etc/php/conf.d/docker-php.ini
 
 RUN echo "* * * * * php /var/www/html/artisan schedule:run > /proc/1/fd/1" | crontab -
 
